@@ -22,5 +22,8 @@ void wait_for_vsync();
 //     audio related
 void play_note(); 
 
+// checking key presses on the PS/2 keyboard
+void check_keypress();
+
 #endif
 
