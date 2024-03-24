@@ -1,33 +1,6 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
-// functions to modularize project components (parallel "while 1" operation)
-
-// fetch song data from global variable and play on the DE1-SoC audio controller
-void song_decoder();
-
-// 
-int timing_comparator();
-
-// take 
-void level_generator();
-
-// update location of keys (rectangles) based on the song
-void graphics_controller();
-
-// helper functions 
-
-//     general purpose
-void swap(int*, int*);
-
-//     graphics related
-void plot_pixel(); // plot a pixel on the screen IF within bounds
-void clear_screen(); // perform using memcpy
-void draw_rect(int, int, short int);
-
-//     audio related
-void play_note(); // play a note based on 
-
 // global variables
 extern int bpm;
 extern int score;
@@ -35,7 +8,12 @@ extern bool q_pressed;
 extern bool w_pressed;
 extern bool o_pressed;
 extern bool p_pressed;
-extern NoteTile noteTiles[10];
+extern NoteTile note_tiles[4];
+
+//      for graphics
+extern volatile int pixel_buffer_start;
+extern short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
+extern short int Buffer2[240][512];
 
 // user-defined classes
 struct Note {
@@ -54,6 +32,7 @@ struct NoteTile {
 
 typedef struct NoteTile NoteTile;
 
+//      utility classes for hardware interfacing
 struct ParaPort {
         volatile unsigned int data;
         volatile unsigned int direction;
