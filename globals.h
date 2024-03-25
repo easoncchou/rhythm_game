@@ -2,13 +2,13 @@
 #define GLOBALS_H
 
 // global variables
-extern int bpm;
-extern int score;
-extern bool q_pressed;
-extern bool w_pressed;
-extern bool o_pressed;
-extern bool p_pressed;
-extern NoteTile note_tiles[4];
+// extern int bpm;
+// extern int score;
+// extern bool q_pressed;
+// extern bool w_pressed;
+// extern bool o_pressed;
+// extern bool p_pressed;
+// extern NoteTile note_tiles[4];
 
 //      for graphics
 extern volatile int pixel_buffer_start;
@@ -26,8 +26,8 @@ typedef struct Note Note;
 struct NoteTile {
     int x;
     int y;
-    int dx = 0;
-    int dy = 0;
+    int dx;
+    int dy;
 };
 
 typedef struct NoteTile NoteTile;

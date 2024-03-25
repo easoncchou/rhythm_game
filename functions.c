@@ -17,10 +17,6 @@ int timing_comparator() {
     return 0;
 }
 
-// take 
-void level_generator() {
-
-}
 
 // update location of keys (rectangles) based on the song
 void graphics_controller() {
@@ -39,23 +35,25 @@ void swap(int* x, int* y) {
 //     graphics related
 void plot_pixel(int x, int y, short int line_color) // plot a pixel on the screen IF within bounds
 {
-    volatile short int *one_pixel_address;
+  volatile short int *one_pixel_address;
 
 	one_pixel_address = pixel_buffer_start + (y << 10) + (x << 1);
 
-	*one_pixel_address = line_color;
+  if (x >= 0 && x < 240 && y >= 0 && y < 319) {
+	  *one_pixel_address = line_color;
+  }
 }
 
 void clear_screen() { // perform using memcpy
 
 }
 
-void draw_rect(int, int, short int) {
+void draw_rect(int x, int y, short int colour) {
 
 }
 
 void wait_for_vsync() {
-  volatile int *pixel_ctrl_ptr = (int *)0xff203020;
+  volatile int *pixel_ctrl_ptr = (int *)0xFF203020;
   int status;
   // Start synchronization by writing one to buffer
   *pixel_ctrl_ptr = 1;
