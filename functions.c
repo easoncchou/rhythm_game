@@ -99,7 +99,7 @@ void clear_screen() { // perform using memcpy
 
 }
 
-void draw_rect(int, int, short int) {
+void draw_rect(int x, int y, short int color) {
 
 }
 

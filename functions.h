@@ -15,7 +15,7 @@ void graphics_controller();
 //     general purpose
 void swap(int*, int*);
 //     graphics related
-void plot_pixel(); // plot a pixel on the screen IF within bounds
+void plot_pixel(int x, int y, short int line_color); // plot a pixel on the screen IF within bounds
 void clear_screen(); // perform using memcpy
 void draw_rect(int, int, short int);
 void wait_for_vsync();
