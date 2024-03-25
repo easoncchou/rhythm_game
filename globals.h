@@ -57,5 +57,6 @@ struct audio_t {
 #define HEX_BASE        0xFF200020
 #define SWITCH_BASE     0xFF200040
 #define GRAPHICS_BASE   0xFF203020
+#define PS2_BASE        0xFF200100
 
 #endif
