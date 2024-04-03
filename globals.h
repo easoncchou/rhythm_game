@@ -96,10 +96,11 @@ struct audio_t {
 #define GREAT 1
 #define MISS 0
 
-#define PERFECT_UPPER 186
-#define PERFECT_LOWER 198
+// hit box centered at 185
+#define PERFECT_UPPER 179
+#define PERFECT_LOWER 191
 
-#define GREAT_UPPER 168
-#define GREAT_LOWER 216
+#define GREAT_UPPER 161
+#define GREAT_LOWER 209
 
 #endif
