@@ -1,6 +1,8 @@
 #include "globals.h"
 #include <stdbool.h>
 
+
+
 void check_keypress() {
     //unsigned char byte1 = 0;
 	//unsigned char byte2 = 0;
@@ -18,6 +20,8 @@ void check_keypress() {
     // check RVALID for the data
     RVALID = (PS2_data & 0x8000);	
 
+    *LED_BASE = 0;
+
     if (RVALID != 0){
         // byte1 = byte2;
         // byte2 = byte3;
@@ -29,18 +33,22 @@ void check_keypress() {
         switch (make_code) {
             case (0x15):
                 q_pressed = true;
+                *LED_BASE = 0x1;
                 break;
             
             case (0x1D):
                 w_pressed = true;
+                *LED_BASE = 0x2;
                 break;
             
             case (0x44):
                 o_pressed = true;
+                *LED_BASE = 0x3;
                 break;
             
             case (0x4D):
                 p_pressed = true;
+                *LED_BASE = 0x4;
                 break;
 
             default:
