@@ -10,10 +10,12 @@ bool q_pressed;
 bool w_pressed;
 bool o_pressed;
 bool p_pressed;
+int keypress_window = 20;
 NoteTile q_lane_note_tiles[4];
 NoteTile w_lane_note_tiles[4];
 NoteTile o_lane_note_tiles[4];
 NoteTile p_lane_note_tiles[4];
+
 
 // graphics
 volatile int pixel_buffer_start;

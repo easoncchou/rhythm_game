@@ -90,4 +90,15 @@ struct audio_t {
 #define BB4     466.16
 #define B4      493.88
 
+// timing comparator
+#define PERFECT 2
+#define GREAT 1
+#define MISS 0
+
+#define PERFECT_UPPER 186
+#define PERFECT_LOWER 198
+
+#define GREAT_UPPER 168
+#define GREAT_LOWER 216
+
 #endif

@@ -7,7 +7,7 @@ void check_keypress() {
 
 	unsigned char make_code = 0;
     int PS2_data, RVALID;
-    int q_pressed, w_pressed, o_pressed, p_pressed;
+    q_pressed= w_pressed= o_pressed= p_pressed= false;
     
     // initialze pointer to PS/2 base
   	volatile int * PS2_ptr = (int *) PS2_BASE;
