@@ -1,19 +1,10 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
-// global variables
-// extern int bpm;
-// extern int score;
-// extern bool q_pressed;
-// extern bool w_pressed;
-// extern bool o_pressed;
-// extern bool p_pressed;
-// extern NoteTile note_tiles[4];
-
-//      for graphics
-extern volatile int pixel_buffer_start;
-extern short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
-extern short int Buffer2[240][512];
+#include <stdio.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <time.h>
 
 // user-defined classes
 struct NoteTile {
@@ -24,6 +15,24 @@ struct NoteTile {
 };
 
 typedef struct NoteTile NoteTile;
+
+// global variables
+extern int bpm;
+extern int score;
+extern bool q_pressed;
+extern bool w_pressed;
+extern bool o_pressed;
+extern bool p_pressed;
+extern NoteTile note_tiles[4];
+extern NoteTile q_lane_note_tiles[4];
+extern NoteTile w_lane_note_tiles[4];
+extern NoteTile o_lane_note_tiles[4];
+extern NoteTile p_lane_note_tiles[4];
+
+//      for graphics
+extern volatile int pixel_buffer_start;
+extern short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
+extern short int Buffer2[240][512];
 
 //      utility classes for hardware interfacing
 struct ParaPort {
@@ -91,16 +100,27 @@ struct audio_t {
 #define BB4     466.16
 #define B4      493.88
 
+/*
+Each Hit Box is 24x50 big
+
+Location for each lane (LEFT X BOUNDARY, RIGHT X BOUNDARY)
+Q - (30, 80)
+W - (100, 150) 
+O - (170, 220)
+P - (240, 290)
+
+*/
+
 // timing comparator
 #define PERFECT 2
 #define GREAT 1
 #define MISS 0
 
-// hit box centered at 185
-#define PERFECT_UPPER 179
-#define PERFECT_LOWER 191
+// hit box top-left corner at y = 173
+#define PERFECT_UPPER 167
+#define PERFECT_LOWER 179
 
-#define GREAT_UPPER 161
-#define GREAT_LOWER 209
+#define GREAT_UPPER 149
+#define GREAT_LOWER 197
 
 #endif

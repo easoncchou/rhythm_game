@@ -13,6 +13,7 @@ void check_keypress() {
     
     // initialze pointer to PS/2 base
   	volatile int * PS2_ptr = (int *) PS2_BASE;
+    volatile int * LED_ptr = (int *) LED_BASE;
 
     // read the Data register in the PS/2 port
     PS2_data = *(PS2_ptr);	
@@ -20,7 +21,7 @@ void check_keypress() {
     // check RVALID for the data
     RVALID = (PS2_data & 0x8000);	
 
-    *LED_BASE = 0;
+    *LED_ptr = 0;
 
     if (RVALID != 0){
         // byte1 = byte2;
@@ -33,22 +34,22 @@ void check_keypress() {
         switch (make_code) {
             case (0x15):
                 q_pressed = true;
-                *LED_BASE = 0x1;
+                *LED_ptr = 0x1;
                 break;
             
             case (0x1D):
                 w_pressed = true;
-                *LED_BASE = 0x2;
+                *LED_ptr = 0x2;
                 break;
             
             case (0x44):
                 o_pressed = true;
-                *LED_BASE = 0x3;
+                *LED_ptr = 0x3;
                 break;
             
             case (0x4D):
                 p_pressed = true;
-                *LED_BASE = 0x4;
+                *LED_ptr = 0x4;
                 break;
 
             default:
