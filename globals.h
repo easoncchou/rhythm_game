@@ -10,10 +10,25 @@
 // extern bool p_pressed;
 // extern NoteTile note_tiles[4];
 
+//      for interfacing hardware
+// The LED pit is at this base address
+extern struct ParaPort *const ledp;
+// The BUTTONS pit is at this base address
+extern struct ParaPort *const buttonp;
+// The Swicthes PIT
+extern struct ParaPort *const swp;
+//  audio device port
+struct audio_t *const audiop;
+//  hardware timer port
+struct TimerPort *const timerp;
 //      for graphics
 extern volatile int pixel_buffer_start;
 extern short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
 extern short int Buffer2[240][512];
+
+//      for audio
+extern double tracing_that_dream[][2];
+extern int song_progress;
 
 // user-defined classes
 struct NoteTile {
@@ -43,9 +58,19 @@ struct audio_t {
     volatile unsigned int rdata;	// the 32 bit (really 24) right data register
 };
 
+struct TimerPort {
+	volatile unsigned int status;
+	volatile unsigned int control;
+	volatile unsigned int start_low;
+	volatile unsigned int start_high;
+	volatile unsigned int snapshot_low;
+	volatile unsigned int snapshot_high;
+};
+
 // constants (using preprocessor directives i.e. #define)
 //      parallel port addresses
 #define AUDIO_BASE      0xFF203040
+#define TIMER_BASE      0XFF202000
 #define LED_BASE        0xFF200000
 #define BUTTON_BASE     0xFF200050
 #define HEX_BASE        0xFF200020
@@ -53,7 +78,18 @@ struct audio_t {
 #define GRAPHICS_BASE   0xFF203020
 #define PS2_BASE        0xFF200100
 
+// note lengths
+#define WHOLE      1000000000
+#define HALF       500000000
+#define QUARTER    250000000
+#define EIGTH      125000000
+#define SIXTEENTH  62500000
+#define TRIPLET    83333333
+#define QUARTERDOT 375000000
+
 //      note frequencies
+#define R       0
+
 #define C3      130.81
 #define CS3     138.59
 #define DB3     138.59
@@ -89,5 +125,13 @@ struct audio_t {
 #define AS4     466.16
 #define BB4     466.16
 #define B4      493.88
+
+#define C5      523.25
+#define CS5     554.37
+#define DB5     554.37
+#define D5      587.33
+#define DS5     622.25
+#define EB5     622.25
+#define E5      659.26
 
 #endif
