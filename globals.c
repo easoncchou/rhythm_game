@@ -7,10 +7,11 @@
 // game globals
 int bpm = 60;
 int score = 0;
-bool q_pressed;
-bool w_pressed;
-bool o_pressed;
-bool p_pressed;
+bool q_pressed = false;
+bool w_pressed = false;
+bool o_pressed = false;
+bool p_pressed = false;
+int keypress_window = 20;
 NoteTile q_lane_note_tiles[4];
 NoteTile w_lane_note_tiles[4];
 NoteTile o_lane_note_tiles[4];
@@ -29,6 +30,7 @@ struct ParaPort *const swp = ((struct ParaPort *)0xFF200040);
 struct audio_t *const audiop = ((struct audio_t *) AUDIO_BASE);
 // hardware timer port
 struct TimerPort *const timerp = ((struct TimerPort *) TIMER_BASE);
+
 // graphics
 volatile int pixel_buffer_start;
 short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
