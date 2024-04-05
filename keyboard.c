@@ -21,39 +21,33 @@ void check_keypress() {
     // check RVALID for the data
     RVALID = (PS2_data & 0x8000);	
 
-    *LED_ptr = 0;
+    // extracts the make_code 
+    make_code = PS2_data & 0xFF;
 
-    if (RVALID != 0){
-        // byte1 = byte2;
-        // byte2 = byte3;
+    // check if note keys are pressed
+    switch (make_code) {
+        case (0x15):
+            q_pressed = true;
+            *LED_ptr = 0x8;
+            break;
+        
+        case (0x1D):
+            w_pressed = true;
+            *LED_ptr = 0x4;
+            break;
+        
+        case (0x44):
+            o_pressed = true;
+            *LED_ptr = 0x2;
+            break;
+        
+        case (0x4D):
+            p_pressed = true;
+            *LED_ptr = 0x1;
+            break;
 
-        // extracts the make_code 
-        make_code = PS2_data & 0xFF;
+        default:
+            break;
+    }
+}	
 
-        // check if note keys are pressed
-        switch (make_code) {
-            case (0x15):
-                q_pressed = true;
-                *LED_ptr = 0x1;
-                break;
-            
-            case (0x1D):
-                w_pressed = true;
-                *LED_ptr = 0x2;
-                break;
-            
-            case (0x44):
-                o_pressed = true;
-                *LED_ptr = 0x3;
-                break;
-            
-            case (0x4D):
-                p_pressed = true;
-                *LED_ptr = 0x4;
-                break;
-
-            default:
-                break;
-        }
-    }	
-}
