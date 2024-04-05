@@ -12,8 +12,8 @@ void check_keypress() {
     q_pressed= w_pressed= o_pressed= p_pressed= false;
     
     // initialze pointer to PS/2 base
-  	volatile int * PS2_ptr = (int *) PS2_BASE;
-    volatile int * LED_ptr = (int *) LED_BASE;
+  	volatile unsigned int * PS2_ptr = (unsigned int *) PS2_BASE;
+    volatile unsigned int * LED_ptr = (unsigned int *) LED_BASE;
 
     // read the Data register in the PS/2 port
     PS2_data = *(PS2_ptr);	
