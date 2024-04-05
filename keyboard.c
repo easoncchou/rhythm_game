@@ -2,12 +2,11 @@
 #include <stdbool.h>
 
 
-
 void check_keypress() {
-    //unsigned char byte1 = 0;
-	//unsigned char byte2 = 0;
+    unsigned char byte1 = 0;
+	unsigned char byte2 = 0;
+	unsigned char byte3 = 0;
 
-	unsigned char make_code = 0;
     int PS2_data, RVALID;
     q_pressed= w_pressed= o_pressed= p_pressed= false;
     
@@ -21,33 +20,64 @@ void check_keypress() {
     // check RVALID for the data
     RVALID = (PS2_data & 0x8000);	
 
-    // extracts the make_code 
-    make_code = PS2_data & 0xFF;
+    if (RVALID != 0){
+        /* always save the last three bytes received */
+        byte1 = byte2;
+        byte2 = byte3;
+        byte3 = PS2_data & 0xFF;
+    }
 
-    // check if note keys are pressed
-    switch (make_code) {
-        case (0x15):
-            q_pressed = true;
-            *LED_ptr = 0x8;
-            break;
-        
-        case (0x1D):
-            w_pressed = true;
-            *LED_ptr = 0x4;
-            break;
-        
-        case (0x44):
-            o_pressed = true;
-            *LED_ptr = 0x2;
-            break;
-        
-        case (0x4D):
-            p_pressed = true;
-            *LED_ptr = 0x1;
+    if (byte2 != 0xF0){
+        // check if note keys are pressed
+        switch (byte3) {
+            case (0x15):
+                q_pressed = true;
+                *LED_ptr = (*LED_ptr) | 0x8;
+                break;
+
+            case (0x1D):
+                w_pressed = true;
+                *LED_ptr = (*LED_ptr) | 0x4;
+                break;
+
+            case (0x44):
+                o_pressed = true;
+                *LED_ptr = (*LED_ptr) | 0x2;
+                break;
+
+            case (0x4D):
+                p_pressed = true;
+                *LED_ptr = (*LED_ptr) | 0x1;
+                break;
+
+            default:
+                break;
+        }
+    } else{
+        switch (byte3) {
+            case (0x15):
+            q_pressed = false;
+            *LED_ptr = (*LED_ptr) & 0x7;
             break;
 
-        default:
+            case (0x1D):
+            w_pressed = false;
+            *LED_ptr = (*LED_ptr) & 0xA;
             break;
+
+            case (0x44):
+            o_pressed = false;
+            *LED_ptr = (*LED_ptr) & 0xD;
+            break;
+
+            case (0x4D):
+            p_pressed = false;
+            *LED_ptr = (*LED_ptr) & 0xE;
+            break;
+
+            default:
+            break;
+        }
     }
 }	
 
