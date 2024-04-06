@@ -25,6 +25,8 @@ void clear_screen();
 void plot_pixel(int x, int y, short int line_color); // plot a pixel on the screen IF within bounds
 void draw_line(int x, int y, short int color); // draw a line TILE_WIDTH long at x y
 void draw_tile(int x, int y, short int color);
+void draw_border(int x, int y, short int color);
+void highlight_tile();
 void draw_background(); // perform using memcpy
 void wait_for_vsync();
 //     audio related

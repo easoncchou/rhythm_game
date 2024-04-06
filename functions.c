@@ -18,7 +18,8 @@ NoteTile* createNoteTile(){
 	newTile->x = rand() % 4 * 70 + 30; // 30, 100, 170, 240
 	newTile->y = -TILE_HEIGHT;
 	newTile->dy = 1;
-	newTile->color = color[rand() % 10]; 
+	newTile->color = color[rand() % 10];
+	newTile->scored = false; 
 	// insert into a linked list based on assigned lane
 	switch (newTile->x) {
 	case 30:
@@ -103,6 +104,20 @@ void draw_tile(int x, int y, short int color) {
 			plot_pixel(x + i, y + j, color);
 		}
 	}
+}
+
+void highlight_tile() {
+	if (q_pressed) draw_border(30, 173, 0x07e0);
+	if (w_pressed) draw_border(100, 173, 0x07e0);
+	if (o_pressed) draw_border(170, 173, 0x07e0);
+	if (p_pressed) draw_border(240, 173, 0x07e0);
+}
+
+void draw_border(int x, int y, short int color) {
+	for (int i = 0; i < TILE_WIDTH; i++) plot_pixel(x + i, y, color); // top edge
+	for (int i = 0; i < TILE_WIDTH; i++) plot_pixel(x + i, y + TILE_HEIGHT, color); // bottom edge
+	for (int i = 0; i < TILE_HEIGHT; i++) plot_pixel(x, y + i, color); // left edge
+	for (int i = 0; i < TILE_HEIGHT; i++) plot_pixel(x + TILE_WIDTH, y + i, color); // right edge
 }
 
 void wait_for_vsync() {

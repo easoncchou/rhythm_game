@@ -40,7 +40,9 @@ int main() {
 		}
 		check_keypress();
 		graphics_controller();
+		highlight_tile();
 		wait_for_vsync();
+		score_display();
 	}
 }
 

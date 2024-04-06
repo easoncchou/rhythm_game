@@ -1,4 +1,4 @@
-#include "global.h"
+#include "globals.h"
 
 unsigned int hex_display(int number){
     //depending on the number, return its corresponding HEX display in hexidecimal
@@ -26,7 +26,7 @@ unsigned int hex_display(int number){
     }
 }
 
-void score_display (int score){
+void score_display () {
 
     // initialize HEX pointer
     volatile unsigned int * HEX_ptr = (unsigned int *) HEX_BASE;

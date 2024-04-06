@@ -59,6 +59,7 @@ typedef struct NoteTile {
     int y; // top left
     int dy; // speed down the screen
     int color; // color of the tile
+    bool scored; // if the tile has been counted for score already
     NoteTile* next; // pointer to the next noteTile in linked list
 } NoteTile;
 
