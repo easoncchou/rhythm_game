@@ -7,61 +7,60 @@
 #include <time.h>
 
 // global variables
-// extern int bpm;
-// extern int score;
-// extern bool q_pressed;
-// extern bool w_pressed;
-// extern bool o_pressed;
-// extern bool p_pressed;
-// extern NoteTile note_tiles[4];
-
-//      for interfacing hardware
-// The LED pit is at this base address
-extern struct ParaPort *const ledp;
-// The BUTTONS pit is at this base address
-extern struct ParaPort *const buttonp;
-// The Swicthes PIT
-extern struct ParaPort *const swp;
-//  audio device port
-struct audio_t *const audiop;
-//  hardware timer port
-struct TimerPort *const timerp;
-//      for graphics
-extern volatile int pixel_buffer_start;
-extern short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
-extern short int Buffer2[240][512];
-
-//      for audio
-extern double tracing_that_dream[][2];
-extern int song_progress;
-
-// user-defined classes
-struct NoteTile {
-    int x;
-    int y;
-    int dx;
-    int dy;
-};
-
-typedef struct NoteTile NoteTile;
-
-// global variables
+//      game variables
 extern int bpm;
 extern int score;
 extern bool q_pressed;
 extern bool w_pressed;
 extern bool o_pressed;
 extern bool p_pressed;
+
+// DEPRECATED - DELETE
 extern NoteTile note_tiles[4];
 extern NoteTile q_lane_note_tiles[4];
 extern NoteTile w_lane_note_tiles[4];
 extern NoteTile o_lane_note_tiles[4];
 extern NoteTile p_lane_note_tiles[4];
+// DEPRECATED - DELETE
+
+//      noteTile linked lists
+extern struct NoteTile* q_head;
+extern struct NoteTile* w_head;
+extern struct NoteTile* o_head;
+extern struct NoteTile* p_head;
+
+//      for interfacing hardware
+//          The LED pit is at this base address
+extern struct ParaPort *const ledp;
+//          The BUTTONS pit is at this base address
+extern struct ParaPort *const buttonp;
+//          The Swicthes PIT
+extern struct ParaPort *const swp;
+//          audio device port
+struct audio_t *const audiop;
+//          hardware timer port
+struct TimerPort *const timerp;
 
 //      for graphics
-extern volatile int pixel_buffer_start;
+extern volatile int *pixel_ctrl_ptr;
 extern short int Buffer1[240][512]; // 240 rows, 512 (320 + padding) columns
 extern short int Buffer2[240][512];
+extern short int BackgroundBuffer[240][512]; // background image drawn at the start
+extern short int BlackBuffer[240][512];
+extern short int color[10];
+
+//      for audio
+extern double tracing_that_dream[][2];
+extern int song_progress;
+
+// user-defined classes
+typedef struct NoteTile {
+    int x; // top right
+    int y; // top left
+    int dy; // speed down the screen
+    int color; // color of the tile
+    NoteTile* next; // pointer to the next noteTile in linked list
+} NoteTile;
 
 //      utility classes for hardware interfacing
 struct ParaPort {
@@ -91,6 +90,7 @@ struct TimerPort {
 };
 
 // constants (using preprocessor directives i.e. #define)
+
 //      parallel port addresses
 #define AUDIO_BASE      0xFF203040
 #define TIMER_BASE      0XFF202000
@@ -101,7 +101,15 @@ struct TimerPort {
 #define GRAPHICS_BASE   0xFF203020
 #define PS2_BASE        0xFF200100
 
-// note lengths
+//      dimensions of a note tile
+#define TILE_HEIGHT     24
+#define TILE_WIDTH      50
+
+//      screen constants
+#define SCREEN_WIDTH 320
+#define SCREEN_HEIGHT 240
+
+//      note lengths
 #define WHOLE      1000000000
 #define HALF       500000000
 #define QUARTER    250000000
@@ -111,7 +119,7 @@ struct TimerPort {
 #define QUARTERDOT 375000000
 
 //      note frequencies
-#define R       0
+#define R       8192
 
 #define C3      130.81
 #define CS3     138.59
