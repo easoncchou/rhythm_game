@@ -1,46 +1,173 @@
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
-#include "globals.h"
+
+// constants (using preprocessor directives i.e. #define)
+
+//      parallel port addresses
+#define AUDIO_BASE 0xFF203040
+#define TIMER_BASE 0xFF202000
+#define TIMER2_BASE 0xFF202020
+#define LED_BASE 0xFF200000
+#define BUTTON_BASE 0xFF200050
+#define HEX_BASE 0xFF200020
+#define SWITCH_BASE 0xFF200040
+#define GRAPHICS_BASE 0xFF203020
+#define PS2_BASE 0xFF200100
+
+//      dimensions of a note tile
+#define TILE_HEIGHT 24
+#define TILE_WIDTH 50
+
+//      screen constants
+#define SCREEN_WIDTH 320
+#define SCREEN_HEIGHT 240
+
+// how much the audio delays behind the video
+#define AUDIO_DELAY 72500000
+	
+//      note lengths
+#define WHOLE 1000000000
+#define HALF 500000000
+#define QUARTER 250000000
+#define EIGTH 125000000
+#define SIXTEENTH 62500000
+#define TRIPLET 83333333
+#define QUARTERDOT 375000000
+
+//      note frequencies
+#define R 8192
+
+#define C3 130.81
+#define CS3 138.59
+#define DB3 138.59
+#define D3 146.83
+#define DS3 155.56
+#define EB3 155.56
+#define E3 164.81
+#define F3 174.61
+#define FS3 185.00
+#define GB3 185.00
+#define G3 196.00
+#define GS3 207.65
+#define AB3 207.65
+#define A3 220.00
+#define AS3 233.08
+#define BB3 233.08
+#define B3 246.94
+
+#define C4 261.63
+#define CS4 277.18
+#define DB4 277.18
+#define D4 293.36
+#define DS4 311.13
+#define EB4 311.13
+#define E4 329.63
+#define F4 349.23
+#define FS4 369.99
+#define GB4 369.99
+#define G4 392.00
+#define GS4 415.30
+#define AB4 415.30
+#define A4 440.00
+#define AS4 466.16
+#define BB4 466.16
+#define B4 493.88
+
+#define C5 523.25
+#define CS5 554.37
+#define DB5 554.37
+#define D5 587.33
+#define DS5 622.25
+#define EB5 622.25
+#define E5 659.26
+
+// end of song frequency constant
+#define END 8191
+
+// timing comparator
+#define PERFECT 2
+#define GREAT 1
+#define MISS 0
+
+// hit box top-left corner at y = 173
+#define PERFECT_UPPER 167
+#define PERFECT_LOWER 179
+
+#define GREAT_UPPER 149
+#define GREAT_LOWER 197
+
+// user-defined classes
+typedef struct NoteTile {
+  int x;                  // top right
+  int y;                  // top left
+  int dy;                 // speed down the screen
+  int color;              // color of the tile
+  bool scored;            // if the tile has been counted for the score already
+  struct NoteTile *next;  // pointer to the next noteTile in linked list
+} NoteTile;
+
+//      utility classes for hardware interfacing
+struct ParaPort {
+  volatile unsigned int data;
+  volatile unsigned int direction;
+  volatile unsigned int mask;
+  volatile unsigned int edge;
+};
+
+struct audio_t {
+  volatile unsigned int control;  // The control/status register
+  volatile unsigned char rarc;    // the 8 bit RARC register
+  volatile unsigned char ralc;    // the 8 bit RALC register
+  volatile unsigned char wsrc;    // the 8 bit WSRC register
+  volatile unsigned char wslc;    // the 8 bit WSLC register
+  volatile unsigned int ldata;    // the 32 bit (really 24) left data register
+  volatile unsigned int rdata;    // the 32 bit (really 24) right data register
+};
+
+struct TimerPort {
+  volatile unsigned int status;
+  volatile unsigned int control;
+  volatile unsigned int start_low;
+  volatile unsigned int start_high;
+  volatile unsigned int snapshot_low;
+  volatile unsigned int snapshot_high;
+};
 
 // game globals
-int bpm = 60;
 int score = 0;
 bool q_pressed = false;
 bool w_pressed = false;
 bool o_pressed = false;
 bool p_pressed = false;
 int keypress_window = 20;
-NoteTile q_lane_note_tiles[4];
-NoteTile w_lane_note_tiles[4];
-NoteTile o_lane_note_tiles[4];
-NoteTile p_lane_note_tiles[4];
 
 // noteTile globals
-struct NoteTile* q_head = NULL;
-struct NoteTile* w_head = NULL;
-struct NoteTile* o_head = NULL;
-struct NoteTile* p_head = NULL;
+struct NoteTile *q_head = NULL;
+struct NoteTile *w_head = NULL;
+struct NoteTile *o_head = NULL;
+struct NoteTile *p_head = NULL;
 
 // hardware
 // The LED pit is at this base address
-struct ParaPort *const ledp = ((struct ParaPort *) LED_BASE);
-volatile unsigned int * LED_ptr = (unsigned int *) LED_BASE;
+struct ParaPort *const ledp = ((struct ParaPort *)LED_BASE);
+volatile unsigned int *LED_ptr = (unsigned int *)LED_BASE;
 // The BUTTONS pit is at this base address
-struct ParaPort *const buttonp = ((struct ParaPort *) BUTTON_BASE);
+struct ParaPort *const buttonp = ((struct ParaPort *)BUTTON_BASE);
 // The HEX digits 0 through 3 PIT
-struct ParaPort *const hex03p = ((struct ParaPort *)HEX_BASE);
+struct ParaPort *const hex03p = ((struct ParaPort *)BUTTON_BASE);
 // The Swicthes PIT
 struct ParaPort *const swp = ((struct ParaPort *)SWITCH_BASE);
 // audio device port
-struct audio_t *const audiop = ((struct audio_t *) AUDIO_BASE);
+struct audio_t *const audiop = ((struct audio_t *)AUDIO_BASE);
 // hardware timer port
-struct TimerPort *const timerp = ((struct TimerPort *) TIMER_BASE);
+struct TimerPort *const timerp = ((struct TimerPort *)TIMER_BASE);
 // hardware timer2 port
 struct TimerPort *const timer2p = ((struct TimerPort *)TIMER2_BASE);
 // PS2 keyboard base
-volatile unsigned int * keyboardp = (unsigned int *) PS2_BASE;
+volatile unsigned int *keyboardp = (unsigned int *)PS2_BASE;
 
 // audio
 //  song progress: what note of the array we are at
@@ -547,254 +674,666 @@ short int BlackBuffer[240][512] = {0};
 short int color[10] = {0x00f3, 0xf800, 0x07e0, 0x001f, 0x03ff,
                        0xffe0, 0xf81f, 0x3e7f, 0x09ba, 0xff0a};
 
-//  song is a 2D array, first column = pitch, second column = duration as a fraction/decimal
-//  note pitches are #define'd in globals.h, first letter = note, last letter = octave,
-//  middle letter is S for sharp or B for flat if it's there
+//  song is a 2D array, first column = pitch, second column = duration as a
+//  fraction/decimal note pitches are #define'd in globals.h, first letter =
+//  note, last letter = octave, middle letter is S for sharp or B for flat if
+//  it's there
 double tracing_that_dream[][2] = {
-	{R, WHOLE},
-	
+    {R, WHOLE},
+
+    {AB3, QUARTER},    {AB4, QUARTER},  {G4, QUARTER},    {AB4, QUARTER},
+
+    {G4, QUARTER},     {F4, QUARTER},   {EB4, QUARTER},   {F4, QUARTER},
+
+    {EB4, QUARTER},    {R, EIGTH},      {BB3, EIGTH},     {DB4, QUARTER},
+    {C4, EIGTH},       {BB3, EIGTH},
+
+    {C4, QUARTER},     {R, QUARTER},    {AB3, QUARTER},   {BB3, QUARTER},
+
+    {C4, QUARTER},     {DB4, QUARTER},  {C4, QUARTER},    {DB4, QUARTER},
+
+    {EB4, QUARTER},    {AB3, QUARTER},  {R, QUARTER},     {AB3, EIGTH},
+    {AB3, EIGTH},
+
+    {DB4, QUARTER},    {C4, QUARTER},   {DB4, QUARTER},   {EB4, QUARTER},
+
+    {C4, QUARTERDOT},  {BB3, EIGTH},    {BB3, QUARTER},   {R, QUARTER},
+
+    {AB3, QUARTER},  // BAR 9
+    {AB4, QUARTER},    {G4, QUARTER},   {AB4, QUARTER},
+
+    {G4, QUARTER},     {F4, QUARTER},   {EB4, QUARTER},   {F4, QUARTER},
+
+    {E4, QUARTER},  // E-NATURAL IS INTENDED
+    {F4, QUARTER},     {G4, QUARTER},   {C4, QUARTER},
+
+    {AB4, HALF},       {G4, QUARTER},   {F4, QUARTER},
+
+    {EB4, QUARTER},    {F4, EIGTH},     {AB3, EIGTH},     {R, EIGTH},
+    {F3, EIGTH},       {F3, EIGTH},     {AB3, EIGTH},
+
+    {DB4, QUARTER},    {C4, EIGTH},     {BB3, EIGTH},     {R, EIGTH},
+    {AB3, EIGTH},      {AB3, QUARTER},
+
+    {C5, EIGTH},  // goes high here
+    {F4, EIGTH},       {C5, EIGTH},     {BB4, EIGTH},     {R, EIGTH},
+    {F4, EIGTH},       {R, EIGTH},      {AB4, QUARTER},  // TIE
+
+    {G4, EIGTH},  // BAR 16
+    {F4, EIGTH},       {EB4, EIGTH},    {C4, EIGTH},      {BB3, EIGTH},
+    {EB4, EIGTH},      {C4, QUARTER},  // TIE
+
+    {F3, EIGTH},       {AB3, EIGTH},    {BB3, EIGTH},     {C4, EIGTH},
+    {F4, EIGTH},       {AB4, EIGTH},    {G4, EIGTH},
+
+    {R, EIGTH},        {AB4, EIGTH},    {DB4, EIGTH},     {BB4, EIGTH},
+    {R, EIGTH},        {C3, EIGTH},     {EB3, EIGTH},     {F3, QUARTER},  // TIE
+
+    {G3, EIGTH},       {AB3, EIGTH},    {BB3, QUARTER},   {AB3, EIGTH},
+    {BB3, EIGTH},      {F4, EIGTH},
+
+    {EB4, EIGTH},      {C4, EIGTH},     {BB3, EIGTH},     {AB3, QUARTER},
+    {G3, EIGTH},       {C3, EIGTH},     {EB3, EIGTH},
+
+    {F3, EIGTH},  // BAR 21
+    {G3, EIGTH},       {AB3, EIGTH},    {BB3, QUARTER},   {G3, EIGTH},
+    {EB3, EIGTH},      {DB3, EIGTH},
+
+    {C4, QUARTER},     {DB4, QUARTER},  {EB4, QUARTER},   {GB4, QUARTER},
+
+    {F4, EIGTH},       {DB4, EIGTH},    {AB4, EIGTH},     {G4, QUARTER},
+    {BB4, EIGTH},      {DB5, EIGTH},    {C5, EIGTH},
+
+    {BB4, EIGTH},      {BB3, EIGTH},    {DB4, EIGTH},     {C4, QUARTER},
+    {EB4, EIGTH},      {AB4, EIGTH},    {GB4, EIGTH},
+
+    {F4, EIGTH},       {F3, EIGTH},     {C4, EIGTH},      {BB3, QUARTER},
+    {EB4, EIGTH},      {DB4, EIGTH},    {BB3, EIGTH},
+
+    {AB3, QUARTERDOT}, {C4, SIXTEENTH}, {EB4, SIXTEENTH}, {AB4, HALF},
+
+    {AB3, QUARTER},  // BAR 27
+    {AB4, QUARTER},    {G4, QUARTER},   {AB4, QUARTER},
+
+    {G4, QUARTER},     {F4, QUARTER},   {EB4, QUARTER},   {F4, QUARTER},
+
+    {EB4, QUARTER},    {R, EIGTH},      {BB3, EIGTH},     {DB4, QUARTER},
+    {C4, EIGTH},       {BB3, EIGTH},
+
+    {C4, QUARTER},     {R, QUARTER},    {AB3, QUARTER},   {BB3, QUARTER},
+
+    {C4, QUARTER},     {DB4, QUARTER},  {C4, QUARTER},    {DB4, QUARTER},
+
+    {EB4, QUARTER},    {C4, QUARTER},   {R, QUARTER},     {F3, EIGTH},
+    {AB3, EIGTH},
+
+    {DB4, QUARTER},    {C4, QUARTER},   {DB4, QUARTER},   {EB4, QUARTER},
+
+    {C4, QUARTERDOT},  {BB3, EIGTH},    {BB3, HALF},
+
+    {AB3, QUARTER},  // BAR 35
+    {AB4, QUARTER},    {G4, QUARTER},   {AB4, QUARTER},
+
+    {G4, QUARTER},     {F4, QUARTER},   {EB4, QUARTER},   {F4, QUARTER},
+
+    {EB4, QUARTER},    {F4, QUARTER},   {G4, QUARTER},    {C4, QUARTER},
+
+    {AB4, QUARTER},    {R, QUARTER},    {G4, QUARTER},    {F4, QUARTER},
+
+    {EB4, QUARTER},    {F4, EIGTH},     {AB3, EIGTH},     {R, QUARTER},
+    {F3, EIGTH},       {AB3, EIGTH},
+
+    {DB4, QUARTER},    {C4, EIGTH},     {BB3, QUARTER},   {AB3, EIGTH},
     {AB3, QUARTER},
-    {AB4, QUARTER},
-    {G4, QUARTER},
-    {AB4, QUARTER},
+
+    {END, WHOLE}};
+
+// functions to modularize project components (parallel "while 1" operation)
+//      update location of NoteTiles (rectangles) based on the song
+void graphics_controller();
+
+// helper functions
+//     general purpose
+void swap(int *, int *);
+//     noteTile functions
+NoteTile *createNoteTile();
+
+//     graphics related
+void graphics_initial_setup();
+void clear_screen();  // done classically
+void plot_pixel(
+    int x, int y,
+    short int line_color);  // plot a pixel on the screen IF within bounds
+void draw_line(int x, int y,
+               short int color);  // draw a line TILE_WIDTH long at x y
+void draw_tile(int x, int y, short int color);
+void draw_border(int x, int y, short int color);
+void highlight_tile();
+void draw_background();  // perform using memcpy
+void draw_startscreen();
+void wait_for_vsync();
+//     audio related
+void audio_initial_setup();
+bool update_note_audio();
+bool update_note_video();
+//		keyboard related
+void check_keypress();
+// 		hex related
+void score_display();
+unsigned int hex_display(int);
+void poll_start();
+
+int main() {
+  // seed random
+  srand(time(NULL));
+  // clear and prime the audio port and hardware timer for audio purposes
+  poll_start();
+  while (1) {   
+    // play the song, breaks out if song_progress needs to be updated timely
+    int frequency = (int)tracing_that_dream[audio_progress][0];
+    if (frequency == END) poll_start();
+    int num_samples =
+        8192 / frequency;  // number of samples in one cycle of the square wave
+    // fill the samples array
+    int samples_array[num_samples];
+    int i = 0;
+    while (i < num_samples / 2) {
+	  update_note_video();
+      if (update_note_audio()) break;
+      samples_array[i] = 0xFFFFFF;
+      i++;
+    }
+    while (i < num_samples) {
+	  update_note_video();
+      if (update_note_audio()) break;
+      samples_array[i] = 0x0;
+      i++;
+    }
+    int j = 0;
+    // fill the hardware buffer until its full
+    while (audiop->wsrc) {
+      audiop->ldata = samples_array[j % num_samples];
+      audiop->rdata = samples_array[j % num_samples];
+      j++;
+    }
+    check_keypress();
+    graphics_controller();
+    highlight_tile();
+    wait_for_vsync();
+    score_display();
+  }
+}
+
+// poll for the space bar
+void poll_start() {
+    // reset game data
+    audio_progress = 0;
+	  video_progress = 0;
+    score = 0;
+    audio_delayed = false;
+    // reset hardware
+    score_display();
+    draw_startscreen();
+    wait_for_vsync();
+    byte1 = byte2 = byte3 = 0;
+    RVALID = 0;
+    int num_bytes_available= 0;
     
-    {G4, QUARTER},
-    {F4, QUARTER},
-    {EB4, QUARTER},
-    {F4, QUARTER},
+    do{
+        PS2_data = *(keyboardp);
+        num_bytes_available = PS2_data & 0xFFFF0000;
+    } while (num_bytes_available != 0);
 
-    {EB4, QUARTER},
-    {R, EIGTH},
-    {BB3, EIGTH},
-    {DB4, QUARTER},
-    {C4, EIGTH},
-    {BB3, EIGTH},
-    
-    {C4, QUARTER},
-    {R, QUARTER},
-    {AB3, QUARTER},
-    {BB3, QUARTER},
+    while (1){
+        PS2_data = *(keyboardp);
+        RVALID = (PS2_data & 0x8000);
 
-    {C4, QUARTER},
-    {DB4, QUARTER},
-    {C4, QUARTER},
-    {DB4, QUARTER},
+        if (RVALID !=0){
+            byte1 = byte2;
+            byte2 = byte3;
+            byte3 = PS2_data & 0xFF;
+        }
+        
+        if (byte2 == 0xF0 || byte2 == 0xE0){
+            break;
+        }
 
-    {EB4, QUARTER},
-    {AB3, QUARTER},
-    {R, QUARTER},
-    {AB3, EIGTH},
-    {AB3, EIGTH},
+    }
+    graphics_initial_setup();
+    audio_initial_setup();
 
-    {DB4, QUARTER},
-    {C4, QUARTER},
-    {DB4, QUARTER},
-    {EB4, QUARTER},
+    //empty the linked lists
+    for (int i = 0; i < 4; i++) {
+        NoteTile *curr = NULL;
+        NoteTile *next = NULL;
+        bool tileHit = false;
+        switch (i) {
+        case 0:
+            curr = q_head;
+            break;
+        case 1:
+            curr = w_head;
+            break;
+        case 2:
+            curr = o_head;
+            break;
+        case 3:
+            curr = p_head;
+            break;
+        }
+        while (curr != NULL) {
+            next = curr->next;
+            free(curr);
+            curr = next;
+        }
+        q_head = NULL;
+        w_head = NULL;
+        o_head = NULL;
+        p_head = NULL;
+    }
 
-    {C4, QUARTERDOT},
-    {BB3, EIGTH},
-    {BB3, QUARTER},
-    {R, QUARTER},
+    return;
+}
 
-    {AB3, QUARTER}, // BAR 9
-    {AB4, QUARTER},
-    {G4, QUARTER},
-    {AB4, QUARTER},
-
-    {G4, QUARTER},
-    {F4, QUARTER},
-    {EB4, QUARTER},
-    {F4, QUARTER},
-
-    {E4, QUARTER}, // E-NATURAL IS INTENDED
-    {F4, QUARTER},
-    {G4, QUARTER},
-    {C4, QUARTER},
-
-    {AB4, HALF},
-    {G4, QUARTER},
-    {F4, QUARTER},
-
-    {EB4, QUARTER},
-    {F4, EIGTH},
-    {AB3, EIGTH},
-    {R, EIGTH},
-    {F3, EIGTH},
-    {F3, EIGTH},
-    {AB3, EIGTH},
-
-    {DB4, QUARTER},
-    {C4, EIGTH},
-    {BB3, EIGTH},
-    {R, EIGTH},
-    {AB3, EIGTH},
-    {AB3, QUARTER},
-
-    {C5, EIGTH},	// goes high here
-    {F4, EIGTH},
-    {C5, EIGTH},
-    {BB4, EIGTH},
-    {R, EIGTH},
-    {F4, EIGTH},
-    {R, EIGTH},
-    {AB4, QUARTER}, // TIE
-
-    {G4, EIGTH}, // BAR 16
-    {F4, EIGTH},
-    {EB4, EIGTH},
-    {C4, EIGTH},
-    {BB3, EIGTH},
-    {EB4, EIGTH},
-    {C4, QUARTER}, // TIE
-
-    {F3, EIGTH},
-    {AB3, EIGTH},
-    {BB3, EIGTH},
-    {C4, EIGTH},
-    {F4, EIGTH},
-    {AB4, EIGTH},
-    {G4, EIGTH},
-    
-    {R, EIGTH},
-    {AB4, EIGTH},
-    {DB4, EIGTH},
-    {BB4, EIGTH},
-    {R, EIGTH},
-    {C3, EIGTH},
-    {EB3, EIGTH},
-    {F3, QUARTER}, // TIE
-
-    {G3, EIGTH},
-    {AB3, EIGTH},
-    {BB3, QUARTER},
-    {AB3, EIGTH},
-    {BB3, EIGTH},
-    {F4, EIGTH},
-
-    {EB4, EIGTH},
-    {C4, EIGTH},
-	{BB3, EIGTH},
-    {AB3, QUARTER},
-    {G3, EIGTH},
-    {C3, EIGTH},
-    {EB3, EIGTH},
-
-    {F3, EIGTH}, // BAR 21
-    {G3, EIGTH},
-    {AB3, EIGTH},
-    {BB3, QUARTER},
-    {G3, EIGTH},
-    {EB3, EIGTH},
-    {DB3, EIGTH},
-
-    {C4, QUARTER},
-    {DB4, QUARTER},
-    {EB4, QUARTER},
-    {GB4, QUARTER},
-
-    {F4, EIGTH},
-    {DB4, EIGTH},
-    {AB4, EIGTH},
-    {G4, QUARTER},
-    {BB4, EIGTH},
-    {DB5, EIGTH},
-    {C5, EIGTH},
-
-    {BB4, EIGTH},
-    {BB3, EIGTH},
-    {DB4, EIGTH},
-    {C4, QUARTER},
-    {EB4, EIGTH},
-    {AB4, EIGTH},
-    {GB4, EIGTH},
-
-    {F4, EIGTH},
-    {F3, EIGTH},
-    {C4, EIGTH},
-    {BB3, QUARTER},
-    {EB4, EIGTH},
-    {DB4, EIGTH},
-    {BB3, EIGTH},
-
-    {AB3, QUARTERDOT},
-    {C4, SIXTEENTH},
-    {EB4, SIXTEENTH},
-    {AB4, HALF},
+void graphics_initial_setup() {
+  // prepare the hardware timer with 0.25s (first note is a quarter note)
+  timer2p->control = 0x8;  // STOP TIMER
+  int length =
+      tracing_that_dream[audio_progress][1] / 4;  // divide by 4 for cpulator
+  timer2p->start_low = (length & 0xFFFF);         // startlow
+  timer2p->start_high = (length >> 16);           // starthigh
+  timer2p->control = 0x4;                         // START = 1 in control reg.
 	
-	{AB3, QUARTER}, // BAR 27
-	{AB4, QUARTER},
-	{G4, QUARTER},
-	{AB4, QUARTER},
-	
-	{G4, QUARTER},
-	{F4, QUARTER},
-	{EB4, QUARTER},
-	{F4, QUARTER},
-	
-	{EB4, QUARTER},
-	{R, EIGTH},
-	{BB3, EIGTH},
-	{DB4, QUARTER},
-	{C4, EIGTH},
-	{BB3, EIGTH},
-	
-	{C4, QUARTER},
-	{R, QUARTER},
-	{AB3, QUARTER},
-	{BB3, QUARTER},
-	
-	{C4, QUARTER},
-	{DB4, QUARTER},
-	{C4, QUARTER},
-	{DB4, QUARTER},
-	
-	{EB4, QUARTER},
-	{C4, QUARTER},
-	{R, QUARTER},
-	{F3, EIGTH},
-	{AB3, EIGTH},
-	
-	{DB4, QUARTER},
-	{C4, QUARTER},
-	{DB4, QUARTER},
-	{EB4, QUARTER},
-	
-	{C4, QUARTERDOT},
-	{BB3, EIGTH},
-	{BB3, HALF},
-	
-	{AB3, QUARTER}, // BAR 35
-	{AB4, QUARTER},
-	{G4, QUARTER},
-	{AB4, QUARTER},
-	
-	{G4, QUARTER},
-	{F4, QUARTER},
-	{EB4, QUARTER},
-	{F4, QUARTER},
-	
-	{EB4, QUARTER},
-	{F4, QUARTER},
-	{G4, QUARTER},
-	{C4, QUARTER},
-	
-	{AB4, QUARTER},
-	{R, QUARTER},
-	{G4, QUARTER},
-	{F4, QUARTER},
-	
-	{EB4, QUARTER},
-	{F4, EIGTH},
-	{AB3, EIGTH},
-	{R, QUARTER},
-	{F3, EIGTH},
-	{AB3, EIGTH},
-	
-	{DB4, QUARTER},
-	{C4, EIGTH},
-	{BB3, QUARTER},
-	{AB3, EIGTH},
-	{AB3, QUARTER},
+  // Clear both buffers to black
+  *(pixel_ctrl_ptr + 1) = (int)&Buffer1;
+  draw_background();
+  wait_for_vsync();
 
-    {END, WHOLE}
-};
+  /* set back pixel buffer to Buffer 2 */
+  *(pixel_ctrl_ptr + 1) = (int)&Buffer2;
+  draw_background();
+}
+
+//     audio related
+void audio_initial_setup() {
+  // prepare audio port for input
+  audiop->control = 0x8;  // clear the output FIFOs
+  audiop->control = 0x0;  // resume input conversion
+
+  // prepare the hardware timer with 0.25s (first note is a quarter note)
+  timerp->control = 0x8;  // STOP TIMER
+  int length =
+      tracing_that_dream[audio_progress][1] / 4;  // divide by 4 for cpulator
+  timerp->start_low = (length & 0xFFFF);         // startlow
+  timerp->start_high = (length >> 16);           // starthigh
+  timerp->control = 0x4;                         // START = 1 in control reg.
+}
+
+bool update_note_audio() {
+  // printf("audio is at %d\n", audio_progress);
+  if ((timerp->status & 1) == 0) {
+    return false;
+  } else if (audio_delayed == false) {
+	audio_delayed = true;
+	timerp->status = 0;  // set TO bit to 0
+    int length =
+        AUDIO_DELAY;  // divide by 6 for cpulator
+    timerp->start_low = (length & 0xFFFF);         // startlow
+    timerp->start_high = (length >> 16);           // starthigh
+    timerp->control = 0x4;                         // START = 1 in control reg.
+    return true;
+  } else {
+    timerp->status = 0;  // set TO bit to 0
+    audio_progress += 1;
+    int length =
+        tracing_that_dream[audio_progress][1] / 4;  // divide by 6 for cpulator
+    timerp->start_low = (length & 0xFFFF);         // startlow
+    timerp->start_high = (length >> 16);           // starthigh
+    timerp->control = 0x4;                         // START = 1 in control reg.
+    return true;
+  }
+}
+
+bool update_note_video() {
+  // printf("video is at %d\n", song_progress);
+  if ((timer2p->status & 1) == 0) {
+    return false;
+  } else {
+    timer2p->status = 0;  // set TO bit to 0
+    video_progress += 1;
+    int length =
+        tracing_that_dream[video_progress][1] / 4;  // divide by 6 for cpulator
+    timer2p->start_low = (length & 0xFFFF);         // startlow
+    timer2p->start_high = (length >> 16);           // starthigh
+    timer2p->control = 0x4;                         // START = 1 in control reg.
+    if (tracing_that_dream[video_progress][0] != R) createNoteTile();
+    return true;
+  }
+}
+
+NoteTile *createNoteTile() {
+  NoteTile *newTile = (NoteTile *)malloc(sizeof(NoteTile));
+  if (newTile == NULL) {
+    printf("Memory allocation failed\n");
+    exit(EXIT_FAILURE);
+  }
+  newTile->x = rand() % 4 * 70 + 30;  // 30, 100, 170, 240
+  newTile->y = -1 * TILE_HEIGHT;
+  newTile->dy = 1;
+  newTile->color = color[rand() % 10];
+  newTile->scored = false;
+  // insert into a linked list based on assigned lane
+  switch (newTile->x) {
+    case 30:
+      newTile->next = q_head;
+      q_head = newTile;
+      break;
+    case 100:
+      newTile->next = w_head;
+      w_head = newTile;
+      break;
+    case 170:
+      newTile->next = o_head;
+      o_head = newTile;
+      break;
+    case 240:
+      newTile->next = p_head;
+      p_head = newTile;
+      break;
+    default:
+      break;
+  }
+  return newTile;
+}
+
+//     general purpose
+void swap(int *x, int *y) {
+  int temp = *x;
+  *x = *y;
+  *y = temp;
+}
+
+//     graphics related
+// Clears screen to black
+void clear_screen() {
+  // Device
+  volatile int *pixel_ctrl_ptr = (int *)0xff203020;
+  // get buffer address
+  int *back_buffer = *(pixel_ctrl_ptr + 1);
+  // Copy the black buffer into the current buffer
+  memcpy(back_buffer, BlackBuffer, sizeof(BlackBuffer));
+}
+
+void plot_pixel(int x, int y, short int color) {
+  if (y < 0 || y > 239) return;  // check y-bounds
+  // Device
+  volatile int *pixel_ctrl_ptr = (int *)0xff203020;
+  // get buffer address
+  int back_buffer = *(pixel_ctrl_ptr + 1);
+  // get address for pixel at (x, y)
+  short int *pixel = back_buffer + (y << 10) + (x << 1);
+  *pixel = color;
+}
+
+void draw_background() {  // perform using memcpy
+                          // Device
+  volatile int *pixel_ctrl_ptr = (int *)0xff203020;
+  // get buffer address
+  int *back_buffer = *(pixel_ctrl_ptr + 1);
+  // Copy the black buffer into the current buffer
+  memcpy(back_buffer, BackgroundBuffer, sizeof(BackgroundBuffer));
+}
+
+void draw_startscreen() {  // perform using memcpy
+                          // Device
+  volatile int *pixel_ctrl_ptr = (int *)0xff203020;
+  // get buffer address
+  int *back_buffer = *(pixel_ctrl_ptr + 1);
+  // Copy the black buffer into the current buffer
+  memcpy(back_buffer, StartScreenBuffer, sizeof(StartScreenBuffer));
+}
+
+void draw_line(int x, int y, short int color) {
+  for (int i = 0; i < TILE_WIDTH; i++) {
+    plot_pixel(x + i, y, color);
+  }
+}
+
+void draw_tile(int x, int y, short int color) {
+  for (int i = 0; i < TILE_WIDTH; i++) {
+    for (int j = 0; j < TILE_HEIGHT; j++) {
+      plot_pixel(x + i, y + j, color);
+    }
+  }
+}
+
+void highlight_tile() {
+  if (q_pressed) draw_border(30, 173, 0x07e0);
+  if (w_pressed) draw_border(100, 173, 0x07e0);
+  if (o_pressed) draw_border(170, 173, 0x07e0);
+  if (p_pressed) draw_border(240, 173, 0x07e0);
+}
+
+void draw_border(int x, int y, short int color) {
+  for (int i = 0; i < TILE_WIDTH; i++) plot_pixel(x + i, y, color);  // top edge
+  for (int i = 0; i < TILE_WIDTH; i++)
+    plot_pixel(x + i, y + TILE_HEIGHT, color);  // bottom edge
+  for (int i = 0; i < TILE_HEIGHT; i++)
+    plot_pixel(x, y + i, color);  // left edge
+  for (int i = 0; i < TILE_HEIGHT; i++)
+    plot_pixel(x + TILE_WIDTH, y + i, color);  // right edge
+}
+
+void wait_for_vsync() {
+  volatile int *pixel_ctrl_ptr = (int *)0xFF203020;
+  int status;
+  // Start synchronization by writing one to buffer
+  *pixel_ctrl_ptr = 1;
+  // get status reg
+  status = *(pixel_ctrl_ptr + 3);
+  // Continue polling until buffer ready to write to
+  while ((status & 0x1) != 0) {
+    // update
+    status = *(pixel_ctrl_ptr + 3);
+  }
+}
+
+// update location of keys (rectangles) based on the song
+void graphics_controller() {
+  draw_background();
+  // go through list and update location of each tile
+  for (int i = 0; i < 4; i++) {
+    NoteTile *prev = NULL;
+    NoteTile *curr = NULL;
+    bool tileHit = false;
+    switch (i) {
+      case 0:
+        curr = q_head;
+        tileHit = q_pressed;
+        break;
+      case 1:
+        curr = w_head;
+        tileHit = w_pressed;
+        break;
+      case 2:
+        curr = o_head;
+        tileHit = o_pressed;
+        break;
+      case 3:
+        curr = p_head;
+        tileHit = p_pressed;
+        break;
+    }
+    while (curr != NULL) {
+      // update the y_location of the NoteTile
+      curr->y += curr->dy *7;
+      // draw line to represent updated position
+      draw_tile(curr->x, curr->y, curr->color);
+      // timing comparator
+      if (curr->scored == false && curr->y > PERFECT_UPPER && 
+          curr->y < PERFECT_LOWER && tileHit) {
+        if (tileHit) {
+            score += PERFECT;
+            curr->scored = true;
+        }
+      } else if (curr->scored == false && curr->y > GREAT_UPPER &&
+          curr->y < GREAT_LOWER) {
+        if (tileHit) {
+          score += GREAT;
+          curr->scored = true;
+        }
+      }
+      // printf("%d, %d\n", curr->x, curr->y);
+      // if a tile is past the screen's bottom edge, remove from the list then
+      // free the memory
+      if (curr->y > 240 - TILE_HEIGHT || curr->scored == true) {  // no longer visible
+        // Store a pointer to the next node before freeing the current node
+        NoteTile *temp = curr->next;
+        // If the current node is the head of the list
+        if (prev == NULL) {
+          // Update the head pointer to the next node
+          switch (i) {
+            case 0:
+              q_head = temp;
+              break;
+            case 1:
+              w_head = temp;
+              break;
+            case 2:
+              o_head = temp;
+              break;
+            case 3:
+              p_head = temp;
+              break;
+          }
+        } else {
+          // Update the next pointer of the previous node to skip over the
+          // current node
+          prev->next = temp;
+        }
+        // Free the memory allocated for the current node
+        free(curr);
+        // printf("tile deleted\n");
+        // Move to the next node
+        curr = temp;
+        // No need to update prev since the node has been removed
+        continue;  // Skip the update of prev and curr at the end of the loop
+      }
+      // update prev and curr
+      prev = curr;
+      curr = curr->next;
+    }
+  }
+}
+
+// read the Data register in the PS/2 port
+void check_keypress() {
+  PS2_data = *(keyboardp);
+
+  // check RVALID for the data
+  RVALID = (PS2_data & 0x8000);
+
+  if (RVALID != 0) {
+    /* always save the last three bytes received */
+    byte1 = byte2;
+    byte2 = byte3;
+    byte3 = PS2_data & 0xFF;
+  }
+  // printf("Break_Code: %u\n", byte2);
+  // printf("Make_Code: %u\n", byte3);
+  if (byte2 != 0xF0) {
+    // check if note keys are pressed
+    switch (byte3) {
+      case (0x15):
+        q_pressed = true;
+        *LED_ptr = (*LED_ptr) | 0x8;
+        break;
+      case (0x1D):
+        w_pressed = true;
+        *LED_ptr = (*LED_ptr) | 0x4;
+        break;
+      case (0x44):
+        o_pressed = true;
+        *LED_ptr = (*LED_ptr) | 0x2;
+        break;
+      case (0x4D):
+        p_pressed = true;
+        *LED_ptr = (*LED_ptr) | 0x1;
+        break;
+      default:
+        break;
+    }
+  } else {
+    switch (byte3) {
+      case (0x15):
+        q_pressed = false;
+        *LED_ptr = (*LED_ptr) & 0x7;
+        break;
+      case (0x1D):
+        w_pressed = false;
+        *LED_ptr = (*LED_ptr) & 0xA;
+        break;
+      case (0x44):
+        o_pressed = false;
+        *LED_ptr = (*LED_ptr) & 0xD;
+        break;
+      case (0x4D):
+        p_pressed = false;
+        *LED_ptr = (*LED_ptr) & 0xE;
+        break;
+      default:
+        break;
+    }
+  }
+}
+
+unsigned int hex_display(int number) {
+  // depending on the number, return its corresponding HEX display in
+  // hexidecimal
+  switch (number) {
+    case (0):
+      return 0x3F;
+    case (1):
+      return 0x06;
+    case (2):
+      return 0x5B;
+    case (3):
+      return 0x4F;
+    case (4):
+      return 0x66;
+    case (5):
+      return 0x6D;
+    case (6):
+      return 0x7D;
+    case (7):
+      return 0x07;
+    case (8):
+      return 0x7F;
+    case (9):
+      return 0x67;
+  }
+  return 0x0;
+}
+
+void score_display() {
+  // initialize HEX pointer
+  volatile unsigned int *HEX_ptr = (unsigned int *)HEX_BASE;
+
+  // get the digits of the score in hexidecimal for HEX display
+  unsigned int first_digit = hex_display(score % 10);
+
+  int temp = (score - (score % 10)) / 10;
+  unsigned int second_digit = hex_display(temp % 10);
+
+  temp = (temp - (temp % 10)) / 10;
+  unsigned int third_digit = hex_display(temp % 10);
+
+  // shift and display the score on the HEX
+  unsigned int display_num = third_digit;
+  display_num = display_num << 8;
+  display_num = display_num | second_digit;
+  display_num = display_num << 8;
+  display_num = display_num | first_digit;
+
+  *HEX_ptr = display_num;
+}
